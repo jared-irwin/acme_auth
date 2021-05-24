@@ -2,7 +2,7 @@ const express = require('express');
 const app = express();
 app.use(express.json());
 const {
-  models: { User },
+  models: { User, Note },
 } = require('./db');
 const path = require('path');
 
@@ -22,6 +22,15 @@ app.get('/api/auth', async (req, res, next) => {
   } catch (ex) {
     next(ex);
   }
+});
+
+app.get('/api/users/:id/notes', async (req, res, next) => {
+  const userId = req.params.id;
+  const notes = await Note.findAll({
+    where: { userId: req.params.id },
+    raw: true,
+  });
+  res.json(notes);
 });
 
 app.use((err, req, res, next) => {
