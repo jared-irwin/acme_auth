@@ -4,6 +4,7 @@ const { STRING } = Sequelize;
 const config = {
   logging: false,
 };
+const bcrypt = require('bcrypt');
 
 if (process.env.LOGGING) {
   delete config.logging;
@@ -17,6 +18,17 @@ const User = conn.define('user', {
   username: STRING,
   password: STRING,
 });
+
+User.beforeCreate((user) => {
+   const hash = bcrypt.hashSync(user.password, 5)
+   user.password = hash;
+   console.log("User", user)
+   return user;
+})
+
+
+
+
 
 User.byToken = async (token) => {
   const userId = jwt.verify(token, process.env.SECRET_TOKEN).userId;
@@ -37,14 +49,15 @@ User.byToken = async (token) => {
 };
 
 User.authenticate = async ({ username, password }) => {
+  
   const user = await User.findOne({
     where: {
       username,
-      password,
     },
   });
-  console.log(user);
-  if (user) {
+  const match = await bcrypt.compare(password, user.password);
+  
+  if (match) {
     const jwtoken = jwt.sign({ userId: user.id }, process.env.SECRET_TOKEN);
     console.log(jwtoken);
     return jwtoken;
@@ -53,6 +66,7 @@ User.authenticate = async ({ username, password }) => {
   error.status = 401;
   throw error;
 };
+
 
 const syncAndSeed = async () => {
   await conn.sync({ force: true });
